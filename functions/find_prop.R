@@ -16,7 +16,7 @@ find_prop <- function(.date, shp, mask) {
     return(.r)
   }) %>%
     rast() %>% # convert to raster stack
-    max() %>% # only valid if recovery timelines do not overlap
+    max(na.rm = TRUE) %>% # only valid if recovery timelines do not overlap
     mask(mask)
   
   #' *NOTE:* within our data, the only series of events in each pixel are

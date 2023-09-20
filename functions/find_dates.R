@@ -11,13 +11,13 @@ find_dates <- function(.date, shp, mask) {
       .r <- slice(s, .i) %>% # only take the last fire or cut
         rasterize(r, cover = TRUE, background = NA) # find proportion
       
-      values(.r) <- if_else(values(.r) > 0, # change burned areas to date
+      values(.r) <- if_else(! is.na(values(.r)), # add fire dates
                             lubridate::decimal_date(s[.i, ]$date),
-                            0)
+                            NA_real_)
       return(.r)
     }) %>%
     rast() %>% # turn list into raster stack
-    max() %>% # take the latest burn date for each cell
+    max(na.rm = TRUE) %>% # take the latest burn date for each cell
     mask(mask) # drop areas outside study area shapefile
   
   names(.raster) <- .date # specify the reference date as the layer name
