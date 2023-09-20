@@ -1,0 +1,2 @@
+cut block polygons: https://catalogue.data.gov.bc.ca/dataset/forest-tenure-cutblock-polygons-fta-4-0
+fire polygons: https://cwfis.cfs.nrcan.gc.ca/datamart/download/nfdbpoly

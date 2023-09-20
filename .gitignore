@@ -50,3 +50,12 @@ rsconnect/
 
 # ignore EarthData login info
 earthdata-login-info.R
+
+# ignore .DS_Store files
+*.DS_Store
+
+# ignore BC cut block shapefile and related files (> 100 MB)
+data/FTEN_CUT_BLOCK_POLY_SVW*
+
+# ignore canadian fire shapefile and related files (> 100 MB)
+data/national-fire-database*
