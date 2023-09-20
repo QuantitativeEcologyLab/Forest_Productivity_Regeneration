@@ -4,12 +4,12 @@ library('sf')        # for spatial data
 library('terra')     # for working with rasters
 
 find_dates <- function(.date, shp, mask) {
-  s <- filter(shp, date <= .date) # only keep fires prior to .date
+  s <- filter(shp, date <= .date) # only keep fires or cuts prior to .date
   
   .raster <-
-    map(1:nrow(s), \(.i) { # for each fire
-      .r <- slice(s, .i) %>% # only take the last fire
-        rasterize(r, cover = TRUE, background = 0) # for this fire only
+    map(1:nrow(s), \(.i) { # for each fire or cut
+      .r <- slice(s, .i) %>% # only take the last fire or cut
+        rasterize(r, cover = TRUE, background = NA) # find proportion
       
       values(.r) <- if_else(values(.r) > 0, # change burned areas to date
                             lubridate::decimal_date(s[.i, ]$date),

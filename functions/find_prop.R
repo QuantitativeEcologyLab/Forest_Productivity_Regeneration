@@ -8,16 +8,22 @@ library('terra')     # for working with rasters
 find_prop <- function(.date, shp, mask) {
   f <- filter(shp, date <= .date)
   
-  burned <- map(1:nrow(f), \(.i) {
-    .r <- slice(f, .i) %>%
-      rasterize(r, cover = TRUE, background = 0)
+  burned <- map(1:nrow(f), \(.i) { # for all events prior to .date
+    .r <- slice(f, .i) %>% # make a raster of each event
+      rasterize(r, cover = TRUE, background = NA) # proportion per pixel 
     
     names(.r) <- st_drop_geometry(f$date[.i])
     return(.r)
   }) %>%
-    rast() %>%
-    max() %>%
+    rast() %>% # convert to raster stack
+    max() %>% # only valid if recovery timelines do not overlap
     mask(mask)
+  
+  #' *NOTE:* within our data, the only series of events in each pixel are
+  #'         no event, burned, burned then cut, no event then cut, cut, and
+  #'         no event then burned, so no recovery timelines overlap (i.e.,
+  #'         there is no burned then burned). It is fair to assume that the
+  #'         clear-cut ended the regeneration time post-fire.
   
   names(burned) <- .date # add date as layer name
   
