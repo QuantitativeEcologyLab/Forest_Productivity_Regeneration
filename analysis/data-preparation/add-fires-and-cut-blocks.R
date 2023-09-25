@@ -111,19 +111,33 @@ d_lab <-
                      ! is.na(last_fire) & is.na(last_cut) ~ 'fire',
                      last_fire > last_cut ~ 'fire',
                      last_fire < last_cut ~ 'clear cut'),
-         # binary numeric labels (necessary for interaction terms)
-         burned = if_else(last_event == 'fire' & prop_fire >= 0.5, 1, 0),
-         cut = if_else(last_event == 'clear cut' & prop_cut >= 0.5, 1, 0),
+         # fire and clear cut categories
+         burned = if_else(last_event == 'fire' & prop_fire >= 0.5,
+                          'burned', 'unburned') %>%
+           factor(levels = c('unburned', 'burned')),
+         cut = if_else(last_event == 'clear cut' & prop_cut >= 0.5,
+                       'cut', 'uncut') %>%
+           factor(levels = c('uncut', 'cut')),
          # calculate number of years since the last event
          #' *assumes the burn or cut occurred within a day*
-         years_since_fire = decimal_date(date) - last_fire * burned,
-         years_since_cut = decimal_date(date) - last_cut * cut,
+         #' 
+         years_since_fire = if_else(burned == 'burned',
+                                    decimal_date(date) - last_fire,
+                                    0),
+         years_since_cut = if_else(cut == 'cut',
+                                   decimal_date(date) - last_cut,
+                                   0),
          # if a fire/cut happened last, change time since cut/fire to -1
          years_since_fire = if_else(burned == 0, -1, years_since_fire),
          years_since_cut = if_else(cut == 0, -1, years_since_cut),
          # if the last event was a burn/cut, change prop_cut/fire = 0
          prop_fire = if_else(burned == 0, 0, prop_fire),
-         prop_cut = if_else(cut == 0, 0, prop_cut))
+         prop_cut = if_else(cut == 0, 0, prop_cut),
+         # integer year and day of year as fraction of year
+         year = year(date),
+         doy = decimal_date(date) - year) %>%
+  relocate(year, .after = 1) %>%
+  relocate(doy, .after = year)
 
 # test the labelling code
 if(FALSE) {
