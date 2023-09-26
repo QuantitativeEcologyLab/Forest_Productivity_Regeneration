@@ -56,7 +56,8 @@ raster_to_df <- function(.r, values_to) {
     select(! name)
 }
 
-d_unnested <-
+if(FALSE) {
+  d_unnested <-
   d %>%
   mutate(ndvi = map(ndvi, \(dat) {
     as.data.frame(dat, xy = TRUE, na.rm = FALSE) %>%
@@ -70,6 +71,10 @@ d_unnested <-
   unnest(ndvi:prop_cut) %>%
   filter(! is.na(ndvi)) %>%
   rename(x_alb = x, y_alb = y)
+saveRDS(d_unnested, 'data/d_unnested.rds')
+} else {
+  d_unnested <- readRDS('data/d_unnested.rds')
+}
 
 if(FALSE) {
   d_small <- filter(d_unnested, date %in% unique(date)[1:2]) 
@@ -100,6 +105,7 @@ if(FALSE) {
     facet_wrap(~ date) +
     geom_raster() +
     scale_fill_gradientn(colors = pal)
+  rm(d_small, pal)
 }
 
 # add labels of the last event and the time since
@@ -110,37 +116,36 @@ d_lab <-
     # add labels for what the last event was
     event =
       case_when(
-        # missing dates for cut and/or fire
-        is.na(last_fire) & is.na(last_cut) ~ '0', # no event = control
-        is.na(last_fire) & ! is.na(last_cut) ~ 'c', # clear cut
-        ! is.na(last_fire) & is.na(last_cut) ~ 'f', # fire
+        # missing dates for cut or fire
+        ! is.na(last_fire) & is.na(last_cut) & prop_fire >= 0.5  ~ 'f',
+        is.na(last_fire) & ! is.na(last_cut) & prop_cut >= 0.5  ~ 'c',
         # dates for both are present
-        last_fire > last_cut ~ 'f',
-        last_fire < last_cut ~ 'c'),
-    # only keep labels if most of the pixel was affected
-    event = case_when(event == 'f' & prop_fire >= 0.5 ~ 'f',
-                      event == 'c' & prop_cut >= 0.5 ~ 'c',
-                      TRUE ~ '0'),
+        last_fire > last_cut & prop_fire >= 0.5 ~ 'f',
+        last_fire < last_cut & prop_cut >= 0.5 ~ 'c',
+        # cut or fire occurred after, but in less than half of the pixel
+        last_fire > last_cut & prop_fire < 0.5 ~ 'c',
+        last_fire < last_cut & prop_cut < 0.5 ~ 'f',
+        # otherwise there was no last event
+        TRUE ~ '0'),
     # calculate number of years since the last event
     #' *assumes the burn or cut occurred within a day*
     dec_date = decimal_date(date),
     years_since_fire = if_else(event == 'f', dec_date - last_fire, 0),
     years_since_cut = if_else(event == 'c', dec_date - last_cut, 0),
-    # if a fire/cut happened last, change time since cut/fire to -1
-    years_since_fire = if_else(event != 'f', 0, years_since_fire),
-    years_since_cut = if_else(event != 'c', 0, years_since_cut),
     # if the last event was a burn/cut, change prop_cut/fire = 0
     prop_fire = if_else(event != 'f', 0, prop_fire),
     prop_cut = if_else(event != 'c', 0, prop_cut),
     # integer year and day of year as integer
     year = as.integer(year(date)),
     doy = as.integer(yday(date)),
+    # make a single column of years since the last event
+    years_since = case_when(event == '0' ~ 0,
+                            event == 'f' ~ years_since_fire,
+                            event == 'c' ~ years_since_cut),
     # convert event class to a factor for regression
     event = factor(event, levels = c('c', 'f', '0'))) %>%
-  relocate(c(year, doy, ndvi, event, years_since_fire, last_fire,
-             prop_fire, years_since_cut, last_cut, prop_cut),
-           .after = date) %>%
-  select(! dec_date)
+  # only keep necessary columns
+  select(c(date, year, doy, ndvi, event, years_since, x_alb, y_alb))
 
 # test the labelling code
 if(FALSE) {
@@ -148,39 +153,34 @@ if(FALSE) {
   # only time two events occur in the same pixel is when cut follows fire 
   d_lab %>%
     group_by(x_alb, y_alb) %>%
+    arrange(date) %>%
     summarize(cat = paste(unique(event), collapse = ' -> ')) %>%
     pull(cat) %>%
     unique() %>%
     cat(sep = '\n')
   
   # data looks ok following a second fire
-  sliver <- filter(d_lab, last_fire > 2015) %>%
+  sliver <-
+    d_lab %>%
+    filter(event == 'f', decimal_date(date) - years_since > 2015) %>%
     slice(1)
   .x_alb <- sliver$x_alb
   .y_alb <- sliver$y_alb
   d_lab %>%
     filter(x_alb == .x_alb, y_alb == .y_alb) %>%
-    plot(years_since_fire ~ date, .)
+    plot(years_since ~ date, .)
   
   # data looks ok following a second clear-cut
-  sliver <- filter(d_lab, last_cut > 2015) %>%
+  sliver <- 
+    d_lab %>%
+    filter(event == 'c', decimal_date(date) - years_since > 2015) %>%
     slice(200)
   .x_alb <- sliver$x_alb
   .y_alb <- sliver$y_alb
   d_lab %>%
     filter(x_alb == .x_alb, y_alb == .y_alb) %>%
-    plot(years_since_cut ~ date, .)
-  
-  # years since fire is set to -1 after the clear-cut
-  sliver <- filter(d_lab, last_cut > 2015) %>%
-    slice(100)
-  .x_alb <- sliver$x_alb
-  .y_alb <- sliver$y_alb
-  d_lab %>%
-    filter(x_alb == .x_alb, y_alb == .y_alb) %>%
-    plot(years_since_fire ~ date, .)
-  
-  rm(sliver, .x_alb, .y_alb) # remove unnecessary objects
+    ggplot(aes(date, years_since, color = event)) +
+    geom_line()
   
   # values switch correctly when a burned area changes to cut
   d_lab %>%
@@ -191,10 +191,10 @@ if(FALSE) {
   # values change correctly when a new fire occurs
   # we know this because some diffs are negative, which imply the time
   # since the last fire decreased at some point
-  filter(d_lab, event == 'fire') %>%
+  filter(d_lab, event == 'f') %>%
     group_by(x_alb, y_alb) %>% # group by pixel
     arrange(date) %>% # just to be sure
-    transmute(diff = c(NA, diff(years_since_fire))) %>% # find adj changes
+    transmute(diff = c(NA, diff(years_since))) %>% # find adj changes
     pull(diff) %>%
     hist()
   
@@ -204,10 +204,10 @@ if(FALSE) {
     ux[which.max(tabulate(match(v, ux)))]
   }
   
-  filter(d_lab, event == 'fire') %>%
+  filter(d_lab, event == 'f') %>%
     group_by(x_alb, y_alb) %>% # group by pixel
     arrange(date) %>% # just to be sure
-    transmute(diff = c(NA, diff(years_since_fire))) %>% # find adj changes
+    transmute(diff = c(NA, diff(years_since))) %>% # find adj changes
     pull(diff) %>%
     Mode() # 0.04383562 * 365 = 16 days
   
