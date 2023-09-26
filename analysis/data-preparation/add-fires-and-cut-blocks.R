@@ -103,41 +103,44 @@ if(FALSE) {
 }
 
 # add labels of the last event and the time since
+# minimizing dataset size using single-letter factors and integers
 d_lab <-
   d_unnested %>%
-  mutate(last_event = # add labels for what the last event was
-           case_when(is.na(last_fire) & is.na(last_cut) ~ 'no event',
-                     is.na(last_fire) & ! is.na(last_cut) ~ 'clear cut',
-                     ! is.na(last_fire) & is.na(last_cut) ~ 'fire',
-                     last_fire > last_cut ~ 'fire',
-                     last_fire < last_cut ~ 'clear cut'),
-         # fire and clear cut categories
-         burned = if_else(last_event == 'fire' & prop_fire >= 0.5,
-                          'burned', 'unburned') %>%
-           factor(levels = c('unburned', 'burned')),
-         cut = if_else(last_event == 'clear cut' & prop_cut >= 0.5,
-                       'cut', 'uncut') %>%
-           factor(levels = c('uncut', 'cut')),
-         # calculate number of years since the last event
-         #' *assumes the burn or cut occurred within a day*
-         #' 
-         years_since_fire = if_else(burned == 'burned',
-                                    decimal_date(date) - last_fire,
-                                    0),
-         years_since_cut = if_else(cut == 'cut',
-                                   decimal_date(date) - last_cut,
-                                   0),
-         # if a fire/cut happened last, change time since cut/fire to -1
-         years_since_fire = if_else(burned == 0, -1, years_since_fire),
-         years_since_cut = if_else(cut == 0, -1, years_since_cut),
-         # if the last event was a burn/cut, change prop_cut/fire = 0
-         prop_fire = if_else(burned == 0, 0, prop_fire),
-         prop_cut = if_else(cut == 0, 0, prop_cut),
-         # integer year and day of year as fraction of year
-         year = year(date),
-         doy = decimal_date(date) - year) %>%
-  relocate(year, .after = 1) %>%
-  relocate(doy, .after = year)
+  mutate(
+    # add labels for what the last event was
+    event =
+      case_when(
+        # missing dates for cut and/or fire
+        is.na(last_fire) & is.na(last_cut) ~ '0', # no event = control
+        is.na(last_fire) & ! is.na(last_cut) ~ 'c', # clear cut
+        ! is.na(last_fire) & is.na(last_cut) ~ 'f', # fire
+        # dates for both are present
+        last_fire > last_cut ~ 'f',
+        last_fire < last_cut ~ 'c'),
+    # only keep labels if most of the pixel was affected
+    event = case_when(event == 'f' & prop_fire >= 0.5 ~ 'f',
+                      event == 'c' & prop_cut >= 0.5 ~ 'c',
+                      TRUE ~ '0'),
+    # calculate number of years since the last event
+    #' *assumes the burn or cut occurred within a day*
+    dec_date = decimal_date(date),
+    years_since_fire = if_else(event == 'f', dec_date - last_fire, 0),
+    years_since_cut = if_else(event == 'c', dec_date - last_cut, 0),
+    # if a fire/cut happened last, change time since cut/fire to -1
+    years_since_fire = if_else(event != 'f', 0, years_since_fire),
+    years_since_cut = if_else(event != 'c', 0, years_since_cut),
+    # if the last event was a burn/cut, change prop_cut/fire = 0
+    prop_fire = if_else(event != 'f', 0, prop_fire),
+    prop_cut = if_else(event != 'c', 0, prop_cut),
+    # integer year and day of year as integer
+    year = as.integer(year(date)),
+    doy = as.integer(yday(date)),
+    # convert event class to a factor for regression
+    event = factor(event, levels = c('c', 'f', '0'))) %>%
+  relocate(c(year, doy, ndvi, event, years_since_fire, last_fire,
+             prop_fire, years_since_cut, last_cut, prop_cut),
+           .after = date) %>%
+  select(! dec_date)
 
 # test the labelling code
 if(FALSE) {
@@ -145,7 +148,7 @@ if(FALSE) {
   # only time two events occur in the same pixel is when cut follows fire 
   d_lab %>%
     group_by(x_alb, y_alb) %>%
-    summarize(cat = paste(unique(last_event), collapse = ' -> ')) %>%
+    summarize(cat = paste(unique(event), collapse = ' -> ')) %>%
     pull(cat) %>%
     unique() %>%
     cat(sep = '\n')
@@ -188,7 +191,7 @@ if(FALSE) {
   # values change correctly when a new fire occurs
   # we know this because some diffs are negative, which imply the time
   # since the last fire decreased at some point
-  filter(d_lab, last_event == 'fire') %>%
+  filter(d_lab, event == 'fire') %>%
     group_by(x_alb, y_alb) %>% # group by pixel
     arrange(date) %>% # just to be sure
     transmute(diff = c(NA, diff(years_since_fire))) %>% # find adj changes
@@ -201,7 +204,7 @@ if(FALSE) {
     ux[which.max(tabulate(match(v, ux)))]
   }
   
-  filter(d_lab, last_event == 'fire') %>%
+  filter(d_lab, event == 'fire') %>%
     group_by(x_alb, y_alb) %>% # group by pixel
     arrange(date) %>% # just to be sure
     transmute(diff = c(NA, diff(years_since_fire))) %>% # find adj changes
