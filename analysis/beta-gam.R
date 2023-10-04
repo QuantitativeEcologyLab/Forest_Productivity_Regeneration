@@ -8,14 +8,14 @@ m <- bam(formula = ndvi_scaled ~
            # change of ndvi over space
            s(x_alb, y_alb, bs = 'ds', k = 200) +
            # seasonal change in ndvi
-           s(doy, bs = 'tp', k = 10) +
+           s(doy, bs = 'cc', k = 10) +
            # yearly change in ndvi
            s(year, bs = 'tp', k = 20) +
            # change in seasonal trend over the years
            ti(doy, year, bs = c('cc', 'cr'), k = c(5, 10)) +
            ## treatment-level changes (intercept are included in smooths)
            # trees affect snow melt over doy
-           s(doy, event, bs = 'sz', k = 5) +
+           s(doy, event, bs = 'sz', k = 5, xt = list(bs = 'cc')) +
            # trees affect snow melt over years
            s(year, event, bs = 'sz', k = 10) +
            # recovery time post event (fire or cut)
