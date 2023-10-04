@@ -3,7 +3,7 @@ library('mgcv')  # for GAMs
 
 d <- readRDS('data/labelled-ndvi-data.rds')
 
-m <- bam(formula = (ndvi + 1) / 2 ~
+m <- bam(formula = ndvi_scaled ~
            ## global changes
            # change of ndvi over space
            s(x_alb, y_alb, bs = 'ds', k = 200) +
@@ -30,8 +30,11 @@ m <- bam(formula = (ndvi + 1) / 2 ~
 # ensure the model complexity is reasonable
 plot(m, pages = 1, scheme = 3, all.terms = TRUE)
 
+# basic model diagnostics
 layout(matrix(1:4, ncol = 2))
 gam.check(m, type = 'pearson') # person residuals work better for beta fam
 layout(1)
 
 summary(m)
+
+saveRDS(m, paste0('models/beta-gam-', Sys.Date(), '.rds'))

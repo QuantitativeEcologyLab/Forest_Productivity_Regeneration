@@ -214,4 +214,9 @@ if(FALSE) {
   rm(Mode)
 }
 
+# add NDVI scaled between 0 and 1
+d_lab <- d_lab %>%
+  mutate(ndvi_scaled = (ndvi + 1) / 2) %>%
+  relocate(ndvi_scaled, .after = ndvi)
+
 saveRDS(d_lab, 'data/labelled-ndvi-data.rds')
