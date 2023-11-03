@@ -3,22 +3,40 @@ library('dplyr')     # for data wrangling
 library('tidyr')     # for data wrangling
 library('purrr')     # for functional programming
 library('sf')        # for spatial data
-library('terra')     # for working with rasters
 library('lubridate') # for working with dates
+library('terra')     # for working with rasters
 library('ggplot2')   # for fancy plots (checking data at the end)
 source('functions/find_prop.R') # to find proportioned burned
 source('functions/find_dates.R') # to find date of last fire
 theme_set(theme_bw())
 
+bc <- filter(canadianmaps::PROV, PT == 'BC') %>% # map of BC
+  st_geometry() %>% # extract geometry only; drop attributes
+  st_as_sf() %>% # convert sfc_MULTIPOLYGON to sf object
+  st_transform('EPSG:3005') # project to the BC Albers projection
+
 area <- st_read('data/study-area/study-area-albers.shp') # study area shp
 fires <- st_read('data/fires/study-fires.shp') # fire shapefile
 cuts <- st_read('data/cut-blocks/study-cut-blocks.shp') # cut block shp
+lakes <- st_read('data/lakes/lakes-albers.shp')
 
 # create a standard raster
 r <- rast('data/ndvi-rasters/study-area-albers/VI_16Days_250m_v61/NDVI/MOD13Q1_NDVI_2000_049.tif') %>%
   `values<-`(1) %>%
   mask(area)
 plot(r)
+
+# rasterize the shapefile of lakes
+w <- terra::rasterize(lakes, r, cover = TRUE, background = 0) %>%
+  mask(area)
+plot(w)
+hist(values(w)) # most pixels don't have water
+hist(values(w)[values(w) > 0]) # no clear cutoff for what has "lots of water"
+mean(values(w) > 0, na.rm = TRUE) # only < 2% of pixels have water
+land <- ifel(w == 0, 1, NA)
+plot(land)
+# take product to set lakes to NA
+plot(rast('data/ndvi-rasters/study-area-albers/VI_16Days_250m_v61/NDVI/MOD13Q1_NDVI_2000_049.tif') * land)
 
 d <- tibble(
   file = list.files(
@@ -31,6 +49,7 @@ d <- tibble(
     .r <- rast(.file) %>%
       mask(area) %>%
       project(r)
+    .r <- .r * land # drop cells in lakes
     names(.r) <- .date
     return(.r)
   }),
@@ -58,20 +77,20 @@ raster_to_df <- function(.r, values_to) {
 
 if(FALSE) {
   d_unnested <-
-  d %>%
-  mutate(ndvi = map(ndvi, \(dat) {
-    as.data.frame(dat, xy = TRUE, na.rm = FALSE) %>%
-      pivot_longer(! c(x, y), values_to = 'ndvi') %>%
-      select(-name) # date column already exists
-  }),
-  last_fire = map(last_fire, \(.r) raster_to_df(.r, 'last_fire')),
-  prop_fire = map(prop_fire, \(.r) raster_to_df(.r, 'prop_fire')),
-  last_cut = map(last_cut, \(.r) raster_to_df(.r, 'last_cut')),
-  prop_cut = map(prop_cut, \(.r) raster_to_df(.r, 'prop_cut'))) %>%
-  unnest(ndvi:prop_cut) %>%
-  filter(! is.na(ndvi)) %>%
-  rename(x_alb = x, y_alb = y)
-saveRDS(d_unnested, 'data/d_unnested.rds')
+    d %>%
+    mutate(ndvi = map(ndvi, \(dat) {
+      as.data.frame(dat, xy = TRUE, na.rm = FALSE) %>%
+        pivot_longer(! c(x, y), values_to = 'ndvi') %>%
+        select(-name) # date column already exists
+    }),
+    last_fire = map(last_fire, \(.r) raster_to_df(.r, 'last_fire')),
+    prop_fire = map(prop_fire, \(.r) raster_to_df(.r, 'prop_fire')),
+    last_cut = map(last_cut, \(.r) raster_to_df(.r, 'last_cut')),
+    prop_cut = map(prop_cut, \(.r) raster_to_df(.r, 'prop_cut'))) %>%
+    unnest(ndvi:prop_cut) %>%
+    filter(! is.na(ndvi)) %>%
+    rename(x_alb = x, y_alb = y)
+  saveRDS(d_unnested, 'data/d_unnested.rds')
 } else {
   d_unnested <- readRDS('data/d_unnested.rds')
 }

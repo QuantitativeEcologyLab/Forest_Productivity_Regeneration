@@ -54,6 +54,13 @@ fires <- st_read('data/national-fire-database/NFDB_poly_20210707.shp') %>%
 plot(st_geometry(area), col = 'forestgreen', main = 'Fires')
 plot(st_geometry(fires), add = TRUE, col = '#FF000080')
 
+# shapefile of lakes
+lakes <- st_read('data/waterbodies/FWA_LAKES_POLY/FWLKSPL_polygon.shp') %>%
+  st_geometry() %>% # drop attributes, only keep geometry
+  st_intersection(area)
+plot(st_geometry(area), col = 'forestgreen', main = 'Lakes')
+plot(lakes, add = TRUE, col = 'steelblue1')
+
 # save the shapefiles
 if(! dir.exists('data/cut-blocks')) dir.create('data/cut-blocks')
 st_write(cuts, 'data/cut-blocks/study-cut-blocks.shp')
@@ -63,3 +70,6 @@ st_write(fires, 'data/fires/study-fires.shp')
 
 if(! dir.exists('data/study-area')) dir.create('data/study-area')
 st_write(area, 'data/study-area/study-area-albers.shp')
+
+if(! dir.exists('data/lakes')) dir.create('data/lakes')
+st_write(lakes, 'data/lakes/lakes-albers.shp')
