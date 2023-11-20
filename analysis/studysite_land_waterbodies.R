@@ -35,11 +35,6 @@ waterbodies<- st_read('data/waterbodies/FWA_LAKES_POLY/FWLKSPL_polygon.shp')%>%
 plot(area, col= 'yellowgreen') #might alter this colour
 plot(waterbodies, add=TRUE, col='blue') #dont add cutblocks or burned areas
 
-ss<-rbind(area,waterbodies)
-
-plot(ss)
-
-largescale <- rbind(bc,area)
 
 main = ggplot()+
   geom_sf(data= area, fill='yellowgreen', colour= 'yellowgreen')+
