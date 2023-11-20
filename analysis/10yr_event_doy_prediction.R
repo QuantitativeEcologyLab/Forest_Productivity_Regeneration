@@ -8,7 +8,7 @@ source('analysis/ggplot_theme.R')
 
 d <- readRDS('data/labelled-ndvi-data.rds')
 
-m <- readRDS('models/betals-gamls-2023-10-27.rds')
+m <- readRDS('models/betals-gamls-2023-11-08.rds')
 
 newd_doy <- expand_grid(doy = 1:365,
                          year = 0,
@@ -24,7 +24,7 @@ summary(m)
 inv_logit <- brms:::inv_logit # take inverse logit function from brms package
 
 preds_doy <- 
-  bind_cols(newd_year,
+  bind_cols(newd_doy,
             predict(m, newdata = newd_doy,
                     terms = c('s(doy)', 's(doy,event)',
                               's(sqrt(years_since),event)', 's.1(doy)', 's.1(doy,event)', 
@@ -44,7 +44,8 @@ p_doy_mu<-
   #                 fill = event), alpha = 0.3) +
   labs(x = 'Year', y = expression(Mean~NDVI~(mu))) +
   scale_color_bright(name = 'Event', labels = c('Control', 'Cut (10 years after)',
-                                                'Burned (10 years after)'))
+                                                'Burned (10 years after)'))+
+  theme(legend.position="none")
 
 p_doy_s2<-
   ggplot(preds_doy) +
@@ -53,7 +54,8 @@ p_doy_s2<-
   #                 fill = event), alpha = 0.3) +
   labs(x = 'Year', y = expression(Variance~'in'~'NDVI,'~sigma^2)) +
   scale_color_bright(name = 'Event', labels = c('Control', 'Cut (10 years after)',
-                                                'Burned (10 years after)'))
+                                                'Burned (10 years after)'))+
+  theme(legend.position="none")
 
 plot_grid(
   get_legend(p_doy_mu + theme(legend.position = 'top')),
