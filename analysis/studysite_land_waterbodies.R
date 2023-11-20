@@ -57,6 +57,6 @@ plot(inset)
 
 gg_inset_map= ggdraw()+
   draw_plot(main)+
-  draw_plot(inset, x= 0.05, y=0.65, width = 0.3, height =  0.3)
+  draw_plot(inset, x= 0.001, y=0.6, width = 0.35, height =  0.4)
 plot(gg_inset_map)
 
