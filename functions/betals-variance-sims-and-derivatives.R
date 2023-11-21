@@ -75,13 +75,14 @@ EXAMPLES <- FALSE # should examples be run?
 ##'
 ##' @param var character; the variable to shift along for derivatives
 ##' @param eps numeric; the value to shift data by for finite differences
-`betals_mean_deriv` <- function(model, data, var, nsims = 100,
+`betals_mean_deriv` <- function(model, data, var, nsims = 100, terms = NULL,
                                 unconditional  = FALSE, eps = 1e-07, ...) {
   
   ## f'(x) = (f(x + eps) - f(x))/eps as eps --> 0
   
   ## prediction matrix
-  Xp1 <- predict(model, newdata = data, type = 'lpmatrix')
+  Xp1 <- predict(model, newdata = data, type = 'lpmatrix', terms = terms,
+                 ...)
   ## model parameters
   coefs <- coef(model)
   ## Bayesian covariance matrix
@@ -105,7 +106,7 @@ EXAMPLES <- FALSE # should examples be run?
   data2[[var]] <- data2[[var]] + eps
   ## predict for shifted data
   ## prediction matrix
-  Xp2 <- predict(model, newdata = data2, type = 'lpmatrix')
+  Xp2 <- predict(model, newdata = data2, type = 'lpmatrix', ...)
   mu2 <- est_betals_mean(betas, Xp2, mu_take, ilink_mu)
   
   ## compute finite differences
@@ -135,7 +136,7 @@ EXAMPLES <- FALSE # should examples be run?
   ## f'(x) = (f(x + eps) - f(x))/eps as eps --> 0
   
   ## prediction matrix
-  Xp1 <- predict(model, newdata = data, type = 'lpmatrix')
+  Xp1 <- predict(model, newdata = data, type = 'lpmatrix', ...)
   ## model parameters
   coefs <- coef(model)
   ## Bayesian covariance matrix
@@ -161,7 +162,7 @@ EXAMPLES <- FALSE # should examples be run?
   data2[[var]] <- data2[[var]] + eps
   ## predict for shifted data
   ## prediction matrix
-  Xp2 <- predict(model, newdata = data2, type = 'lpmatrix')
+  Xp2 <- predict(model, newdata = data2, type = 'lpmatrix', ...)
   var2 <- est_betals_var(betas, Xp2, mu_take, phi_take,
                          ilink_mu, ilink_phi)
   
@@ -222,7 +223,7 @@ EXAMPLES <- FALSE # should examples be run?
 `sim_betals_mean` <- function(model, data, nsims = 100, unconditional = FALSE,
                               ...) {
   ## prediction matrix
-  Xp <- predict(model, newdata = data, type = 'lpmatrix')
+  Xp <- predict(model, newdata = data, type = 'lpmatrix', ...)
   ## model parameters
   coefs <- coef(model)
   ## Bayesian covariance matrix
@@ -253,7 +254,7 @@ EXAMPLES <- FALSE # should examples be run?
 `sim_betals_var` <- function(model, data, nsims = 100, unconditional = FALSE,
                              ...) {
   ## prediction matrix
-  Xp <- predict(model, newdata = data, type = 'lpmatrix')
+  Xp <- predict(model, newdata = data, type = 'lpmatrix', ...)
   ## model parameters
   coefs <- coef(model)
   ## Bayesian covariance matrix
