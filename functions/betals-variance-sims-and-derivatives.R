@@ -24,8 +24,7 @@ EXAMPLES <- FALSE # should examples be run?
 ##'                      10,000+ for quantile-based intervals
 ##' @param unconditional logical; use the smoothness selection corrected version
 ##'                      of the Bayesian covariance matrix of the model?
-`betals_mean` <- function(model, data, nsims = 100, unconditional  = FALSE,
-                          terms = NULL) {
+`betals_mean` <- function(model, data, nsims = 100, unconditional = FALSE) {
   ## Simulate variance from posterior
   sim <- sim_betals_mean(model = model, data = data, nsims = nsims,
                          unconditional = unconditional)
@@ -51,8 +50,7 @@ EXAMPLES <- FALSE # should examples be run?
 ##'                      10,000+ for quantile-based intervals
 ##' @param unconditional logical; use the smoothness selection corrected version
 ##'                      of the Bayesian covariance matrix of the model?
-`betals_var` <- function(model, data, nsims = 100, unconditional  = FALSE,
-                         terms = NULL) {
+`betals_var` <- function(model, data, nsims = 100, unconditional = FALSE) {
   ## Simulate variance from posterior
   sim <- sim_betals_var(model = model, data = data,
                         nsims = nsims, unconditional = unconditional)
@@ -348,7 +346,7 @@ if(EXAMPLES) {
          mu_hat = predict(m_beta, newdata = newd, type = 'response')) %>%
     ggplot() +
     geom_point(aes(t, y), d, alpha = 0.2) +
-    geom_line(aes(t, mu_hat), preds_beta, color = 'cyan', linewidth = 1) +
+    geom_line(aes(t, mu_hat), color = 'cyan', linewidth = 1) +
     geom_line(aes(t, mu), d, color = 'darkorange', linewidth = 1)
   
   # fit a betals model
