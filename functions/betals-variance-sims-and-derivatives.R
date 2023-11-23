@@ -28,7 +28,7 @@ EXAMPLES <- FALSE # should examples be run?
                           terms = NULL) {
   ## Simulate variance from posterior
   sim <- sim_betals_mean(model = model, data = data, nsims = nsims,
-                         unconditional = unconditional, ...)
+                         unconditional = unconditional)
   ## process results into a tibble
   colnames(sim) <- paste0("sim", seq_len(nsims))
   tbl <- as_tibble(sim) %>%
@@ -55,7 +55,7 @@ EXAMPLES <- FALSE # should examples be run?
                          terms = NULL) {
   ## Simulate variance from posterior
   sim <- sim_betals_var(model = model, data = data,
-                        nsims = nsims, unconditional = unconditional, ...)
+                        nsims = nsims, unconditional = unconditional)
   ## process results into a tibble
   colnames(sim) <- paste0("sim", seq_len(nsims))
   tbl <- as_tibble(sim) %>%
@@ -77,13 +77,12 @@ EXAMPLES <- FALSE # should examples be run?
 ##' @param eps numeric; the value to shift data by for finite differences
 `betals_mean_deriv` <- function(model, data, var, nsims = 100,
                                 unconditional  = FALSE, terms = NULL,
-                                eps = 1e-07, ...) {
+                                eps = 1e-07) {
   
   ## f'(x) = (f(x + eps) - f(x))/eps as eps --> 0
   
   ## prediction matrix
-  Xp1 <- predict(model, newdata = data, type = 'lpmatrix', terms = terms,
-                 ...)
+  Xp1 <- predict(model, newdata = data, type = 'lpmatrix', terms = terms)
   ## model parameters
   coefs <- coef(model)
   ## Bayesian covariance matrix
@@ -107,8 +106,7 @@ EXAMPLES <- FALSE # should examples be run?
   data2[[var]] <- data2[[var]] + eps
   ## predict for shifted data
   ## prediction matrix
-  Xp2 <- predict(model, newdata = data2, type = 'lpmatrix', terms = terms,
-                 ...)
+  Xp2 <- predict(model, newdata = data2, type = 'lpmatrix', terms = terms)
   mu2 <- est_betals_mean(betas, Xp2, mu_take, ilink_mu)
   
   ## compute finite differences
@@ -139,8 +137,7 @@ EXAMPLES <- FALSE # should examples be run?
   ## f'(x) = (f(x + eps) - f(x))/eps as eps --> 0
   
   ## prediction matrix
-  Xp1 <- predict(model, newdata = data, type = 'lpmatrix', terms = terms,
-                 ...)
+  Xp1 <- predict(model, newdata = data, type = 'lpmatrix', terms = terms)
   ## model parameters
   coefs <- coef(model)
   ## Bayesian covariance matrix
@@ -166,8 +163,7 @@ EXAMPLES <- FALSE # should examples be run?
   data2[[var]] <- data2[[var]] + eps
   ## predict for shifted data
   ## prediction matrix
-  Xp2 <- predict(model, newdata = data2, type = 'lpmatrix', terms = terms,
-                 ...)
+  Xp2 <- predict(model, newdata = data2, type = 'lpmatrix', terms = terms)
   var2 <- est_betals_var(betas, Xp2, mu_take, phi_take,
                          ilink_mu, ilink_phi)
   
@@ -226,11 +222,9 @@ EXAMPLES <- FALSE # should examples be run?
 
 ##' The internal workhorse does all the cool stuff 
 `sim_betals_mean` <- function(model, data, nsims = 100,
-                              unconditional = FALSE, terms = terms,
-                              ...) {
+                              unconditional = FALSE, terms = terms) {
   ## prediction matrix
-  Xp <- predict(model, newdata = data, type = 'lpmatrix', terms = terms,
-                ...)
+  Xp <- predict(model, newdata = data, type = 'lpmatrix', terms = terms)
   ## model parameters
   coefs <- coef(model)
   ## Bayesian covariance matrix
@@ -259,11 +253,9 @@ EXAMPLES <- FALSE # should examples be run?
 
 ##' The internal workhorse does all the cool stuff 
 `sim_betals_var` <- function(model, data, nsims = 100,
-                             unconditional = FALSE, terms = terms,
-                             ...) {
+                             unconditional = FALSE, terms = terms) {
   ## prediction matrix
-  Xp <- predict(model, newdata = data, type = 'lpmatrix', terms = terms,
-                ...)
+  Xp <- predict(model, newdata = data, type = 'lpmatrix', terms = terms)
   ## model parameters
   coefs <- coef(model)
   ## Bayesian covariance matrix
