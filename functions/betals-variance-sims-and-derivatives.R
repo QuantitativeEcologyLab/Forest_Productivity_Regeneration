@@ -24,10 +24,11 @@ EXAMPLES <- FALSE # should examples be run?
 ##'                      10,000+ for quantile-based intervals
 ##' @param unconditional logical; use the smoothness selection corrected version
 ##'                      of the Bayesian covariance matrix of the model?
-`betals_mean` <- function(model, data, nsims = 100, unconditional = FALSE) {
+`betals_mean` <- function(model, data, nsims = 100, unconditional = FALSE,
+                          terms = NULL) {
   ## Simulate variance from posterior
   sim <- sim_betals_mean(model = model, data = data, nsims = nsims,
-                         unconditional = unconditional)
+                         unconditional = unconditional, terms = terms)
   ## process results into a tibble
   colnames(sim) <- paste0("sim", seq_len(nsims))
   tbl <- as_tibble(sim) %>%
@@ -50,10 +51,12 @@ EXAMPLES <- FALSE # should examples be run?
 ##'                      10,000+ for quantile-based intervals
 ##' @param unconditional logical; use the smoothness selection corrected version
 ##'                      of the Bayesian covariance matrix of the model?
-`betals_var` <- function(model, data, nsims = 100, unconditional = FALSE) {
+`betals_var` <- function(model, data, nsims = 100, unconditional = FALSE,
+                         terms = NULL) {
   ## Simulate variance from posterior
   sim <- sim_betals_var(model = model, data = data,
-                        nsims = nsims, unconditional = unconditional)
+                        nsims = nsims, unconditional = unconditional,
+                        terms = terms)
   ## process results into a tibble
   colnames(sim) <- paste0("sim", seq_len(nsims))
   tbl <- as_tibble(sim) %>%
@@ -366,7 +369,7 @@ if(EXAMPLES) {
   
   # simulate for mean
   set.seed(1)
-  mu_sim <- betals_mean(m_betals, data = newd, nsims = K)
+  mu_sim <- betals_mean(m_betals, data = newd, nsims = K, terms = 's(t)')
   
   # plot the simulations for the mean
   ggplot(mu_sim) +
@@ -377,7 +380,8 @@ if(EXAMPLES) {
   
   # simulations from posterior of variance of a Beta LS model
   set.seed(1)
-  var_sim <- betals_var(m_betals, data = newd, nsims = K)
+  var_sim <- betals_var(m_betals, data = newd, nsims = K,
+                        terms = c('s(t)', 's.1(t)', '(Intercept).1', '(Intercept)'))
   
   # plot the simulations for the variance
   ggplot() +
