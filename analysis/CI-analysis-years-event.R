@@ -17,7 +17,7 @@ newd_year<-expand_grid(date=0,#expand_grid returns a tibble whereas expand.grid 
                        y_alb=0)
 
 mean_year<-betals_mean(m, newd_year, nsims=1e4, unconditional  = FALSE, terms= c('s(year)', 's(year,event)', 's.1(year)', 's.1(year,event)'))%>%
-  group_by(year,event)#%>%
+  group_by(year,event)%>%
   summarize(mu = median(mean),
             lwr.mu = quantile(mean, probs = 0.025),
             upr.mu = quantile(mean, probs = 0.975))
