@@ -1,4 +1,7 @@
 library(ggplot2)
+library(tidyr) # for expand_grid
+library(dplyr)
+library(mgcv)
 source('functions/betals-variance-sims-and-derivatives.R')
 source('analysis/ggplot_theme.R')
 
@@ -13,22 +16,78 @@ newd_sqrt<- expand_grid(date=0,#expand_grid returns a tibble whereas expand.grid
                                   doy= 0,
                                   ndvi=0,
                                   event = unique(d$event),
-                                  years_since=0:107,
+                                  years_since=0:107,#could consider cutting this off in the 99th quantile 
                                   x_alb=0,
                                   y_alb=0)
 
 
 
-mean_yearssince<-betals_mean(m, newd_sqrt, nsims=1e4, unconditional = FALSE, terms = c('s(sqrt(years_since),event)','s.1(sqrt(years_since),event)'))%>% 
-  group_by(sqrt(years_since))%>%
+mean_yearssince<-betals_mean(m, newd_sqrt, nsims=1e4, unconditional = FALSE, terms = c('s(sqrt(years_since),event)', '(Intercept)','s.1(sqrt(years_since),event)', '(Intercept).1'))%>% 
+  group_by(years_since, event)%>%#added event since it wasnt working without it
   summarize(mu = median(mean),
             lwr.mu = quantile(mean, probs = 0.025),
-            upr.mu = quantile(mean, probs = 0.975))
+            upr.mu = quantile(mean, probs = 0.975))%>%
+  mutate(across(c(mu, upr.mu, lwr.mu), function(x)x*2-1)) %>% #undoing transformation across all 3 cols
+  filter(! (event == '0' & years_since > 0))
 
-
-variance_yearssince <- betals_var(m,preds_sqrt, nsims = 1e4,terms = c('s(sqrt(years_since),event)', 's.1(sqrt(years_since),event)')) %>%
-  group_by(sqrt(years_since)) %>%
-  summarize(variance_year = median(variance),
+variance_yearssince <- betals_var(m, newd_sqrt, nsims = 1e4,terms = c('s(sqrt(years_since),event)', 's.1(sqrt(years_since),event)', '(Intercept)', '(Intercept).1')) %>%
+  group_by(years_since,event) %>%
+  summarize(s2 = median(variance),
             lwr.s2 = quantile(variance, probs = 0.025),
-            upr.s2 = quantile(variance, probs = 0.975))
+            upr.s2 = quantile(variance, probs = 0.975))%>%
+   mutate(across(c(s2, upr.s2, lwr.s2), function(x)x*4)) #undoing transformation across all 3 cols
 
+
+pal <- c("#000000", "#EE6677", "#228833")#creating a color palette
+
+ggplot(d, aes(years_since, event)) +
+  geom_hex() #might have to make the fill on a log scale to show the difference between the hexagons
+
+mean_ysplot<-ggplot(mean_yearssince)+
+  geom_ribbon(aes(years_since, ymin = lwr.mu, ymax = upr.mu,
+                  fill = event), alpha = 0.3)+
+  geom_line(aes(years_since, mu, color = event), mean_yearssince, linewidth = 1)+
+  geom_hline(aes(yintercept = mu, color = event), filter(mean_yearssince, event == 0)) +
+  geom_hline(aes(yintercept = upr.mu, color = event), filter(mean_yearssince, event == 0), lty = 'dashed') +
+  geom_hline(aes(yintercept = lwr.mu, color = event), filter(mean_yearssince, event == 0), lty = 'dashed') +
+  geom_point(aes(years_since, mu, color = event), filter(mean_yearssince, event == 0)) +
+  geom_errorbar(aes(years_since, ymin = lwr.mu, ymax = upr.mu, color = event), filter(mean_yearssince, event == 0),
+                width = 1) +
+  scale_fill_manual(values = pal, name = "Event", labels= c('Cut', 'Burned', 'Control'), aesthetics = c('color', 'fill'))+
+  scale_color_manual(values = pal, name = "Event", labels= c('Cut', 'Burned', 'Control'), aesthetics = c('color', 'fill'))+
+  labs(x = 'Years Since an Event', y = 'Mean NDVI (\U03BC)') +
+  #scale_color_bright(name = 'Event') +#, labels = c('Cut', 'Burned'))+
+  #scale_fill_bright(name = 'Event') +#, labels = c('Cut', 'Burned'))+
+  theme(legend.position="none")
+
+plot(mean_ysplot)
+
+
+#I need to fix this variance plot as follows:
+# I dont think i want any geom error bars since this is quite varying
+# I want to fix colour scheme and legend
+variance_ysplot<-ggplot(variance_yearssince)+
+  geom_ribbon(aes(years_since, ymin = lwr.s2, ymax = upr.s2,
+                  fill = event), alpha = 0.3)+
+  geom_line(aes(years_since, s2, color = event), variance_yearssince, linewidth = 1)+
+  #geom_hline(aes(yintercept = s2, color = event), filter(variance_yearssince, event == 0)) +
+  #geom_hline(aes(yintercept = upr.s2, color = event), filter(variance_yearssince, event == 0), lty = 'dashed') +
+  #geom_hline(aes(yintercept = lwr.s2, color = event), filter(variance_yearssince, event == 0), lty = 'dashed') +
+  #geom_point(aes(years_since, s2, color = event), filter(variance_yearssince, event == 0)) +
+  #geom_errorbar(aes(years_since, ymin = lwr.s2, ymax = upr.s2, color = event), filter(variance_yearssince, event == 0),
+              #  width = 1) +
+  scale_fill_manual(values = pal, name = "Event", labels= c('Cut', 'Burned', 'Control'), aesthetics = c('color', 'fill'))+
+  scale_color_manual(values = pal, name = "Event", labels= c('Cut', 'Burned', 'Control'), aesthetics = c('color', 'fill'))+
+  #geom_line(aes(sqrt(years_since), s2, color = event), variance_yearssince, alpha = 0.2, linewidth = 1)+
+  #geom_ribbon(aes(x=sqrt(years_since), ymin = lwr.s2, ymax = upr.s2,
+                 #fill = event), alpha = 0.3)+
+  labs(x = 'Years Since an Event', y = 'Variance in NDVI (\U03C3^2)') + #figure out how ot fix the sigma^2
+  theme(legend.position="none")
+plot(variance_ysplot)
+
+ys_plots <-plot_grid(
+  get_legend(mean_ysplot + theme(legend.position = 'top')),
+  plot_grid(mean_ysplot, variance_ysplot,
+            labels = c('a.', 'b.')),
+  ncol = 1, rel_heights = c(0.1, 1))
+plot(ys_plots)
