@@ -42,7 +42,7 @@ p_doy_mu<-
   geom_line(aes(doy, mu, color = event), lwd = 1) +
   # geom_ribbon(aes(years_since, ymin = mu - 0.1, ymax = mu + 0.1,
   #                 fill = event), alpha = 0.3) +
-  labs(x = 'Year', y = expression(Mean~NDVI~(mu))) +
+  labs(x = 'Day of Year', y = expression(Mean~NDVI~(mu))) +
   scale_color_bright(name = 'Event', labels = c('Control', 'Cut (10 years after)',
                                                 'Burned (10 years after)'))+
   theme(legend.position="none")
@@ -52,7 +52,7 @@ p_doy_s2<-
   geom_line(aes(doy, sigma2, color = event), lwd = 1) +
   # geom_ribbon(aes(years_since, ymin = mu - 0.1, ymax = mu + 0.1,
   #                 fill = event), alpha = 0.3) +
-  labs(x = 'Year', y = expression(Variance~'in'~'NDVI,'~sigma^2)) +
+  labs(x = 'Day of Year', y = expression(Variance~'in'~'NDVI,'~sigma^2)) +
   scale_color_bright(name = 'Event', labels = c('Control', 'Cut (10 years after)',
                                                 'Burned (10 years after)'))+
   theme(legend.position="none")
