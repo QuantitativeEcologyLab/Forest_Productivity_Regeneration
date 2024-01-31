@@ -39,16 +39,21 @@ plot(st_geometry(cuts), add = TRUE, col = '#964B0070') # geom plots faster
 # import the fire data
 #' *NOTE:* the shapefile has x, y, and z (altitude) coordinates, which are
 #' not compatible with the Albers projection  
-fires <- st_read('data/national-fire-database/NFDB_poly_20210707.shp') %>%
+fires <- st_read('data/burn-polygons/H_FIRE_PLY_polygon.shp') %>%
   st_zm(drop = TRUE) %>% # drop altitude geometry
   st_transform(st_crs(bc)) %>% # project to the BC Albers projection
   st_intersection(area) %>%
   # rename useful columns, drop the rest
-  transmute(fire_id = FIRE_ID,
-            date = REP_DATE, # assuming start date is homogeneous
-            size_km2 = SIZE_HA / 100) %>% # convert to square km
-  # sort by burn date
-  arrange(date)
+  transmute(fire_id = FIRE_NO,
+            date = FIRE_DATE,
+            size_km2 = SIZE_HA / 100) #%>% # convert to square km
+ 
+  #currently, date does not have any spaces between it "yyyymmdd", reformatting to "yyyy-mm-dd"
+  fires$date <- as.Date(fires$date, format ="%Y%m%d")
+  fires$date<- as.Date(fires$date, format = "%Y-%m-%d")
+
+
+plot(fires)
 
 # ensure the fire polygons are all in the study area
 plot(st_geometry(area), col = 'forestgreen', main = 'Fires')
