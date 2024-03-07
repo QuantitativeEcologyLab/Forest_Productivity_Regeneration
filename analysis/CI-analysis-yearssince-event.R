@@ -8,7 +8,7 @@ source('analysis/ggplot_theme.R')
 
 #import data and most recent model
 d <- readRDS('data/labelled-ndvi-data.rds')
-m <- readRDS('models/betals-gamls-2023-11-08.rds')
+m <- readRDS('models/betals-gamls-2024-02-21.rds')
 
 
 newd_sqrt<- expand_grid(date=0,#expand_grid returns a tibble whereas expand.grid returns a df
@@ -35,8 +35,8 @@ variance_yearssince <- betals_var(m, newd_sqrt, nsims = 1e4,terms = c('s(sqrt(ye
   summarize(s2 = median(variance),
             lwr.s2 = quantile(variance, probs = 0.025),
             upr.s2 = quantile(variance, probs = 0.975))%>%
-   mutate(across(c(s2, upr.s2, lwr.s2), function(x)x*4)) #undoing transformation across all 3 cols
-
+   mutate(across(c(s2, upr.s2, lwr.s2), function(x)x*4))%>%#undoing transformation across all 3 cols
+  filter(! (event == '0' & years_since > 0))
 
 pal <- c("#000000", "#EE6677", "#228833")#creating a color palette
 
@@ -56,32 +56,25 @@ mean_ysplot<-ggplot(mean_yearssince)+
   scale_fill_manual(values = pal, name = "Event", labels= c('Cut', 'Burned', 'Control'), aesthetics = c('color', 'fill'))+
   scale_color_manual(values = pal, name = "Event", labels= c('Cut', 'Burned', 'Control'), aesthetics = c('color', 'fill'))+
   labs(x = 'Years Since an Event', y = 'Mean NDVI (\U03BC)') +
-  #scale_color_bright(name = 'Event') +#, labels = c('Cut', 'Burned'))+
-  #scale_fill_bright(name = 'Event') +#, labels = c('Cut', 'Burned'))+
   theme(legend.position="none")
 
 plot(mean_ysplot)
 
 
-#I need to fix this variance plot as follows:
-# I dont think i want any geom error bars since this is quite varying
-# I want to fix colour scheme and legend
 variance_ysplot<-ggplot(variance_yearssince)+
   geom_ribbon(aes(years_since, ymin = lwr.s2, ymax = upr.s2,
                   fill = event), alpha = 0.3)+
-  geom_line(aes(years_since, s2, color = event), variance_yearssince, linewidth = 1)+
-  #geom_hline(aes(yintercept = s2, color = event), filter(variance_yearssince, event == 0)) +
-  #geom_hline(aes(yintercept = upr.s2, color = event), filter(variance_yearssince, event == 0), lty = 'dashed') +
-  #geom_hline(aes(yintercept = lwr.s2, color = event), filter(variance_yearssince, event == 0), lty = 'dashed') +
-  #geom_point(aes(years_since, s2, color = event), filter(variance_yearssince, event == 0)) +
-  #geom_errorbar(aes(years_since, ymin = lwr.s2, ymax = upr.s2, color = event), filter(variance_yearssince, event == 0),
-              #  width = 1) +
+  geom_line(aes(years_since, s2, color = event), variance_yearssince, linewidth = 1)+ #adding line for variance
+  geom_hline(aes(yintercept = s2, color = event), filter(variance_yearssince, event == 0), linewidth=0.1) + #making the event '0' as that is the control
+  geom_hline(aes(yintercept = upr.s2, color = event), filter(variance_yearssince, event == 0), lty = 'dashed') +
+  geom_hline(aes(yintercept = lwr.s2, color = event), filter(variance_yearssince, event == 0), lty = 'dashed') +
+  geom_point(aes(years_since, s2, color = event), filter(variance_yearssince, event == 0)) +
+  geom_errorbar(aes(years_since, ymin = lwr.s2, ymax = upr.s2, color = event), filter(variance_yearssince, event == 0),
+                width = 1) +
   scale_fill_manual(values = pal, name = "Event", labels= c('Cut', 'Burned', 'Control'), aesthetics = c('color', 'fill'))+
   scale_color_manual(values = pal, name = "Event", labels= c('Cut', 'Burned', 'Control'), aesthetics = c('color', 'fill'))+
-  #geom_line(aes(sqrt(years_since), s2, color = event), variance_yearssince, alpha = 0.2, linewidth = 1)+
-  #geom_ribbon(aes(x=sqrt(years_since), ymin = lwr.s2, ymax = upr.s2,
-                 #fill = event), alpha = 0.3)+
   labs(x = 'Years Since an Event', y = 'Variance in NDVI (\U03C3^2)') + #figure out how ot fix the sigma^2
+  coord_cartesian(ylim = c(0, 0.05)) +
   theme(legend.position="none")
 plot(variance_ysplot)
 
