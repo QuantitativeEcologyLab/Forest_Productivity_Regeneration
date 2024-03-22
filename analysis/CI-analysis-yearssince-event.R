@@ -2,6 +2,7 @@ library(ggplot2)
 library(tidyr) # for expand_grid
 library(dplyr)
 library(mgcv)
+library(cowplot)
 source('functions/betals-variance-sims-and-derivatives.R')
 source('analysis/ggplot_theme.R')
 
