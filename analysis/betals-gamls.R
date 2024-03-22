@@ -2,7 +2,7 @@ library('dplyr') # for data wrangling
 library('mgcv')  # for GAMs
 library('ggplot2')
 library('tictoc')
-source('C:/Users/danidv.stu/OneDrive - UBC/Directed-Study-main/functions/betals.r')
+source('functions/betals.r')
 
 d <- readRDS('data/labelled-ndvi-data.rds')
 
@@ -13,12 +13,30 @@ cut_off<-ggplot(d, aes(years_since, fill = event)) +
 
 # assume that anything past 50 years since the event has regenerated
 d <- mutate(d,
-            event = if_else(years_since > 50, '0', event),
-            years_since = if_else(years_since > 50, 0, years_since))
+            event = if_else(years_since > 70, '0', event),
+            years_since = if_else(years_since > 70, 0, years_since))
 
-d1<- sample_n(d, 1e6)
-#model currently running with error code "Error in names(dat) <- object$term : 
-#  'names' attribute [2] must be the same length as the vector [1]"
+d$event <- as.factor(d$event)
+
+#Subset fire events
+fire_events <- d[d$event == "f", ]
+
+#Subset cut events
+cut_events <- d[d$event == "c", ]
+
+#Combine fire and cut events into one dataframe
+d_subset <- rbind(fire_events, cut_events)
+
+#Subset control events
+control_events <- d[d$event == "0", ]
+
+#Extract random control events, but only 20% of them
+subset_control_events <- sample_n(control_events, 3e6)
+
+#Add subset control events to the fire and cut dataframe
+d1 <- rbind(d_subset, subset_control_events)
+
+
 tic()
 #' cannot use `bam()` with location-scale families (yet...)
 m <- gam(formula = list(
@@ -28,7 +46,7 @@ m <- gam(formula = list(
     # change of ndvi over space
     s(x_alb, y_alb, bs = 'ds', k = 50) +
     # seasonal change in ndvi
-   #s(doy, bs = 'cc', k = 10) +
+    s(doy, bs = 'cc', k = 10) +
     # yearly change in ndvi
     s(year, bs = 'cr', k = 10) + # cr rather of tp because nrow(d) is high 
     # change in seasonal trend over the years
@@ -37,7 +55,7 @@ m <- gam(formula = list(
     # trees affect snow melt over doy
     s(doy, event, bs = 'fs', k = 10, xt = list(bs = 'cc')) +
     # trees affect snow melt over years
-    s(year, event, bs = 'sz', k = 10) +
+    s(year, event, bs = 'fs', k = 10, xt = list(bs = 'cr')) +
     # recovery time post event (fire or cut)
     s(sqrt(years_since), event, bs = 'fs', k = 5),
   # linear predictor for the scale (phi)
@@ -46,7 +64,7 @@ m <- gam(formula = list(
     # change in phi over space
     s(x_alb, y_alb, bs = 'ds', k = 25) +
     # seasonal change in phi
-    #s(doy, bs = 'cc', k = 10) +
+    s(doy, bs = 'cc', k = 10) +
     # yearly change in ndvi
     s(year, bs = 'cr', k = 10) +
     # change in seasonal trend over the years
@@ -55,17 +73,23 @@ m <- gam(formula = list(
     # trees affect snow melt over doy
     s(doy, event, bs = 'fs', k = 10, xt = list(bs = 'cc')) +
     # trees affect snow melt over years
-    s(year, event, bs = 'sz', k = 10) +
+    s(year, event, bs = 'fs', k = 10, xt = list(bs = 'cr')) +
     # recovery time post event (fire or cut)
-    s(sqrt(years_since), event, bs = 'fs', k = 5)),
+    s(sqrt(years_since), event, bs = 'fs', k = 6)),
   family = betals(), # because data is in [0, 1] range
   data = d1,
   method = 'REML', # REstricted Maximum Likelihood
   control = gam.control(trace = TRUE), # print updates while fitting
   knots = list(doy = c(0.5, 366.5))) # for doy to span the full year
 toc()
+
+saveRDS(m, paste0('models/betals-gamls-', Sys.Date(), '.rds'))
+
 # ensure the model complexity is reasonable
-plot(m, pages = 1, scheme = 2, scale = 0)
+plot(m,
+     pages = 1, # plot all terms in a single plot
+     scheme = 2, # determines the colors and type of 3D plots
+     scale = 0) # independent y axes for each term
 
 # ensure the doy terms are cyclical
 layout(matrix(1:4, ncol = 2, byrow = TRUE))
@@ -82,5 +106,3 @@ if(FALSE) {
 }
 
 summary(m)
-
-saveRDS(m, paste0('models/betals-gamls-', Sys.Date(), '.rds'))
