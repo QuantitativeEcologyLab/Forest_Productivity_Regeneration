@@ -10,7 +10,7 @@ source('functions/betals-variance-sims-and-derivatives.R')
 source('analysis/ggplot_theme.R')
 #import data and most recent model
 d <- readRDS('data/labelled-ndvi-data.rds')
-m <- readRDS('models/betals-gamls-2023-11-08.rds')
+m <- readRDS('models/betals-gamls-2024-03-19.rds')
 
 #create a new dataset for the function (decrease computation) and filters appropriately
 newd_year<-expand_grid(date=0,#expand_grid returns a tibble whereas expand.grid returns a df
@@ -42,9 +42,10 @@ variance_year <- betals_var(m,newd_year, nsims = 1e4, unconditional  = FALSE, te
 pal <- c("#000000", "#EE6677", "#228833")#creating a color palette
 
 mean_yearplot<-ggplot(mean_year)+
-  default+
+  #default+
   geom_ribbon(aes(year, ymin = lwr.mu, ymax = upr.mu, fill = event), alpha = 0.3)+
   geom_line(aes(year, mu, color = event), mean_year, linewidth = 1)+
+ # ylim(-0.35,1)+
   labs(x = 'Year', y = 'Mean NDVI (\U03BC)') +
   scale_fill_manual(values = pal, name = "Event", labels= c('Cut', 'Burned', 'Control'), aesthetics = c('color', 'fill'))+
   scale_color_manual(values = pal, name = "Event", labels= c('Cut', 'Burned', 'Control'), aesthetics = c('color', 'fill'))+
@@ -53,10 +54,11 @@ mean_yearplot<-ggplot(mean_year)+
 
 plot(mean_yearplot)
 variance_yearplot<-ggplot(variance_year)+
-  default+
+  #default+
   geom_ribbon(aes(year, ymin = lwr.s2, ymax = upr.s2,fill = event), alpha = 0.3)+
   geom_line(aes(year, variance_year, color = event), variance_year, linewidth = 1)+
-  labs(x = 'Year', y = 'Variance in NDVI (\U03C3)^2') +
+  #ylim(-0.35,1)+
+  labs(x = 'Year', y = 'Variance in NDVI (\U03C3\u00B2)') +
   scale_fill_manual(values = pal, name = "Event", labels= c('Cut', 'Burned', 'Control'), aesthetics = c('color', 'fill'))+
   scale_color_manual(values = pal, name = "Event", labels= c('Cut', 'Burned', 'Control'), aesthetics = c('color', 'fill'))+
   theme(legend.position="none")
