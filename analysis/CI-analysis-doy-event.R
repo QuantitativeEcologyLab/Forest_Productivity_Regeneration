@@ -1,10 +1,15 @@
 library(ggplot2)
 library(dplyr)
+library('ggplot2') # for fancy plots
+library('mgcv')    # for GAMs
+library('gratia')  # for visualizing GAMs
+library('tidyr')
+library('cowplot')
 source('functions/betals-variance-sims-and-derivatives.R')
 source('analysis/ggplot_theme.R')
 #import data and most recent model
 d <- readRDS('data/labelled-ndvi-data.rds')
-m <- readRDS('models/betals-gamls-2023-11-08.rds')
+m <- readRDS('models/betals-gamls-2024-03-19.rds')
 
 newd_doy<-expand_grid(date=0,#expand_grid returns a tibble whereas expand.grid returns a df
                                  year= 0,
@@ -38,6 +43,8 @@ mean_doyplot<-ggplot(mean_doy)+
                   fill = event), alpha = 0.2)+
   geom_line(aes(doy, mu, color = event), mean_doy, linewidth = 1)+
   labs(x = 'Day of Year', y = 'Mean NDVI (\U03BC)') +
+  scale_x_continuous(expand =c(0,0))+
+  #ylim(-0.35,1)+
   scale_fill_manual(values = pal, name = "Event", labels= c('Cut', 'Burned', 'Control'), aesthetics = c('color', 'fill'))+
   scale_color_manual(values = pal, name = "Event", labels= c('Cut', 'Burned', 'Control'), aesthetics = c('color', 'fill'))+
   theme(legend.position="none")
@@ -47,8 +54,11 @@ variance_doyplot<-ggplot(variance_doy)+
   geom_ribbon(aes(doy, ymin = lwr.s2, ymax = upr.s2,
                   fill = event), alpha = 0.3)+
   geom_line(aes(doy, variance_doy, color = event), variance_doy, linewidth = 1)+
-  labs(x = 'Day of Year', y = 'Variance in NDVI (\U03C3)^2') +
+  labs(x = 'Day of Year', y = 'Variance in NDVI (\U03C3\u00B2)') +
+  scale_x_continuous(expand =c(0,0))+
+  #ylim(-0.35,1)+
   scale_fill_manual(values = pal, name = "Event", labels= c('Cut', 'Burned', 'Control'), aesthetics = c('color', 'fill'))+
+  #values = pal inserts that manual colour scheme made from above
   scale_color_manual(values = pal, name = "Event", labels= c('Cut', 'Burned', 'Control'), aesthetics = c('color', 'fill'))+
   theme(legend.position="none")
 
