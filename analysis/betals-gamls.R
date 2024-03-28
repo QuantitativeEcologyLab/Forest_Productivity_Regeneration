@@ -11,7 +11,7 @@ cut_off<-ggplot(d, aes(years_since, fill = event)) +
   coord_cartesian(ylim = c(0, 0.15)) +
   geom_vline(xintercept = 50, lty = 'dashed')
 
-# assume that anything past 50 years since the event has regenerated
+# assume that anything past 70 years since the event has regenerated
 d <- mutate(d,
             event = if_else(years_since > 70, '0', event),
             years_since = if_else(years_since > 70, 0, years_since))
