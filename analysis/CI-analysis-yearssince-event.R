@@ -41,8 +41,6 @@ variance_yearssince <- betals_var(m, newd_sqrt, nsims = 1e4,terms = c('s(sqrt(ye
 
 pal <- c("#000000", "#EE6677", "#228833")#creating a color palette
 
-ggplot(d, aes(years_since, event)) +
-  geom_hex() #might have to make the fill on a log scale to show the difference between the hexagons
 
 mean_ysplot<-ggplot(mean_yearssince)+
   geom_ribbon(aes(years_since, ymin = lwr.mu, ymax = upr.mu,
