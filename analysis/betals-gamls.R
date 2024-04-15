@@ -6,11 +6,6 @@ source('functions/betals.r')
 
 d <- readRDS('data/labelled-ndvi-data.rds')
 
-cut_off<-ggplot(d, aes(years_since, fill = event)) +
-  geom_density(alpha = 0.3) +
-  coord_cartesian(ylim = c(0, 0.15)) +
-  geom_vline(xintercept = 50, lty = 'dashed')
-
 # assume that anything past 70 years since the event has regenerated
 d <- mutate(d,
             event = if_else(years_since > 70, '0', event),
