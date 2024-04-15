@@ -5,11 +5,10 @@ library('mgcv')    # for GAMs
 library('gratia')  # for visualizing GAMs
 library('tidyr')
 library('cowplot')
-source('functions/betals-variance-sims-and-derivatives.R')
 source('analysis/ggplot_theme.R')
 #import data and most recent model
 d <- readRDS('data/labelled-ndvi-data.rds')
-m <- readRDS('models/betals-gamls-2024-03-19.rds')
+
 
 pal <- c("#000000", "#EE6677", "#228833")
 #cut_off<-
