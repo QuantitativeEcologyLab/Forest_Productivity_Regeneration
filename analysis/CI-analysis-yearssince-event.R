@@ -24,7 +24,7 @@ newd_sqrt<- expand_grid(date=0,#expand_grid returns a tibble whereas expand.grid
 
 
 mean_yearssince<-betals_mean(m, newd_sqrt, nsims=1e4, unconditional = FALSE, terms = c('s(sqrt(years_since),event)', '(Intercept)','s.1(sqrt(years_since),event)', '(Intercept).1'))%>% 
-  group_by(years_since, event)%>%#added event since it wasnt working without it
+  group_by(years_since, event)%>%
   summarize(mu = median(mean),
             lwr.mu = quantile(mean, probs = 0.025),
             upr.mu = quantile(mean, probs = 0.975))%>%
