@@ -1,0 +1,42 @@
+
+# import packages
+library(ggplot2)
+library(dplyr)
+library(sf)
+library(canadianmaps)
+
+#import spatial data (coordinates)
+coord<- read.csv('model_Validation/utm_coord_modelvalidation.csv')
+
+names(coord)
+
+#st_as_sf is a function that will convert 'coord' to an sf object
+coord<-  st_as_sf(coord, coords= c("utme", "utmn"), crs = '32611') #for some reason the crs was not being applied to coord
+#i had to manually set it here:
+st_crs(coord) <- st_crs(32611)
+#now confirm that setting the crs worked:
+st_crs(coord)
+
+#this confirms that changing coord to a sf worked if it says 'sf'
+class(coord)
+
+#plotting to check that all the points show up correctly:
+ggplot() +
+  geom_sf(data = coord) +
+  ggtitle("Map of Plot Locations")
+
+#turning it into a polygon and transforming it to BC Albers:
+area_poly<- coord%>%
+  summarise(geometry= st_combine(geometry))%>%
+  st_transform('EPSG:3005')%>%
+  st_cast("POLYGON")
+
+#visualizing to ensure it worked:
+ggplot() +
+  geom_sf(data = area_poly) +
+  ggtitle("Map of Plot Locations")
+
+#now the data has been transformed and made into a polygon, it is time to export as a shp
+area_shp <-  st_write(area_poly, "analysis/model_validation_area.shp", append=F)
+#visual confirmation
+plot(area_shp)
