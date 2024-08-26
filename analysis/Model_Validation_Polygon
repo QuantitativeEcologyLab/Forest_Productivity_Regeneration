@@ -37,6 +37,6 @@ ggplot() +
   ggtitle("Map of Plot Locations")
 
 #now the data has been transformed and made into a polygon, it is time to export as a shp
-area_shp <-  st_write(area_poly, "analysis/model_validation_area.shp", append=F)
+area_shp <-  st_write(area_shp <-  st_write(area_poly, "data/model-validation-area/model_validation_area.shp", append=F)
 #visual confirmation
 plot(area_shp)
